@@ -1,7 +1,10 @@
 import os
-from flask import Flask, redirect, request, session
+from flask import Flask, redirect, request, session, send_file
+from dotenv import load_dotenv
 import dropbox
 from dropbox import DropboxOAuth2Flow
+import zipfile
+from io import BytesIO
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -27,6 +30,7 @@ class DropboxToken(Base):
 Base.metadata.create_all(engine)
 
 # Dropbox App Configuration
+load_dotenv()
 DROPBOX_APP_KEY = os.getenv("DROPBOX_APP_KEY")
 DROPBOX_APP_SECRET = os.getenv("DROPBOX_APP_SECRET")
 REDIRECT_URI = "http://localhost:5000/dropbox_callback"
@@ -86,7 +90,7 @@ def dropbox_callback():
         return "Authentication successful for user: " + oauth_result.account_id
 
     except Exception as e:
-        return f"Authentication failed: {str(e)}", 400
+        return f"Authentication failed: {str(e)}", 500
 
 
 def get_dropbox_client(user_id):
@@ -109,17 +113,93 @@ def get_dropbox_client(user_id):
     return dbx
 
 
-@app.route("/list_dropbox_files/<user_id>")
+@app.route("/list_files/<user_id>")
 def list_dropbox_files(user_id):
     """List files for a given user"""
     dbx = get_dropbox_client(user_id)
-    if dbx:
+    try:
+        files = dbx.files_list_folder("").entries
+        return [file.name for file in files]
+    except Exception as e:
+        print(f"Error listing files: {e}")
+        return []
+
+
+@app.route("/upload_file/<user_id>", methods=["POST"])
+@app.route("/upload_file/<user_id>/<path:file_path>", methods=["POST"])
+def upload_file(user_id, file_path=""):
+    """Upload a file to Dropbox"""
+    if "file" not in request.files:
+        return "No file provided", 400
+
+    file = request.files["file"]
+    filename = file.filename
+
+    dbx = get_dropbox_client(user_id)
+    try:
+        dbx.files_upload(file.read(), f"/{file_path}/{filename}")
+        return "File uploaded successfully"
+    except Exception as e:
+        print(f"Error uploading file: {e}")
+        return "Error uploading file", 500
+
+
+@app.route("/download/<user_id>/<path:file_path>")
+def download_file(user_id, file_path):
+    """Download a specific file from Dropbox"""
+    dbx = get_dropbox_client(user_id)
+    try:
+        _, res = dbx.files_download(f"/{file_path}")
+
+        file_stream = BytesIO(res.content)
+        file_stream.seek(0)
+        res.close()
+
+        return send_file(file_stream, as_attachment=True, download_name=file_path)
+    except Exception as e:
+        print(f"Error downloading file: {e}")
+        return "Error downloading file", 500
+
+
+@app.route("/download_all/<user_id>")
+def download_all_files(user_id):
+    """Download all files from Dropbox as a single ZIP archive, including subdirectories"""
+    dbx = get_dropbox_client(user_id)
+
+    def add_files_to_zip(folder_path, zip_file):
         try:
-            files = dbx.files_list_folder("").entries
-            return [file.name for file in files]
+            entries = dbx.files_list_folder(folder_path).entries
+
+            for entry in entries:
+                entry_path = f"{folder_path}/{entry.name}"
+
+                if isinstance(entry, dropbox.files.FolderMetadata):
+                    add_files_to_zip(entry_path, zip_file)
+                elif isinstance(entry, dropbox.files.FileMetadata):
+                    _, res = dbx.files_download(entry.path_lower)
+                    zip_file.writestr(entry_path.lstrip("/"), res.content)
+                    res.close()
         except Exception as e:
-            print(f"Error listing files: {e}")
-            return []
+            print(f"Error processing folder {folder_path}: {e}")
+
+    try:
+        zip_buffer = BytesIO()
+
+        #TODO ZIP_DEFLATED might eventually cause problems
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            add_files_to_zip("", zip_file)
+
+        zip_buffer.seek(0)
+
+        return send_file(
+            zip_buffer,
+            as_attachment=True,
+            download_name="all_files.zip",
+            mimetype="application/zip",
+        )
+    except Exception as e:
+        print(f"Error downloading files: {e}")
+        return "Error downloading files", 500
 
 
 if __name__ == "__main__":
