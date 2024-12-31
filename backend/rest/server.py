@@ -137,11 +137,10 @@ def get_dropbox_client():
     )
     return dbx
 
-# Checks if the logged in user has a dropbox account linked or not
 @app.route("/dropbox_linked")
 @oidc.require_login
 def dropbox_linked():
-    # Store refresh token in database
+    """Checks if the logged in user has a dropbox account linked or not"""
     db_session = Session()
     existing_token = (
         db_session.query(DropboxToken)
