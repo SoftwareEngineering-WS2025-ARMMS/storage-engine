@@ -141,7 +141,6 @@ def validate_token():
 def validate_access_token(token):
     try:
         ARMMS_SECRET = os.getenv("ARMMS_SECRET")
-        print(ARMMS_SECRET)
         # Decode and validate the JWT
         print(token)
         claims = jwt.decode(token, ARMMS_SECRET)
@@ -156,7 +155,7 @@ def get_dropbox_client():
     if oidc.user_loggedin:
         user_id = oidc.user_getfield('sub')
     else:
-        # Check if the user has an internal authorization header is provided
+        # Check if an internal authorization header is provided
         auth_header = request.headers.get("Authorization")
 
         if not auth_header or not auth_header.startswith("Bearer "):
