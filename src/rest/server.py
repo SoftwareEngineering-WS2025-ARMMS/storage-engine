@@ -41,7 +41,7 @@ Base.metadata.create_all(engine)
 load_dotenv()
 DROPBOX_APP_KEY = os.getenv("DROPBOX_APP_KEY")
 DROPBOX_APP_SECRET = os.getenv("DROPBOX_APP_SECRET")
-REDIRECT_URI = "http://localhost:5000/dropbox_callback"
+REDIRECT_URI = "https://armms-storage.aorief.com/dropbox_callback"
 
 @app.route('/')
 def home():
@@ -203,7 +203,7 @@ def list_dropbox_files():
     """List files for a given user"""
     dbx = get_dropbox_client()
     try:
-        files = dbx.files_list_folder("").entries
+        files = dbx.files_list_folder("").entries #TODO: This only lists the root folder
         return [file.name for file in files]
     except Exception as e:
         print(f"Error listing files: {e}")
