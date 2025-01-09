@@ -9,6 +9,7 @@ from io import BytesIO
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from authlib.jose import jwt, jwk
 
 # Flask and Database Setup
 app = Flask(__name__)
@@ -44,6 +45,7 @@ REDIRECT_URI = "http://localhost:5000/dropbox_callback"
 
 @app.route('/')
 def home():
+    print(request.cookies)
     if oidc.user_loggedin:
         db_session = Session()
         existing_token = (
@@ -119,11 +121,60 @@ def dropbox_callback():
         return f"Authentication failed: {str(e)}", 500
 
 
+@app.route("/validate_token")
+def validate_token():
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"error": "Missing or invalid Authorization header"}), 401
+    
+    # Extract the token
+    token = auth_header.split(" ")[1]
+    
+    # Validate the token
+    claims = validate_access_token(token)
+    if not claims:
+        return jsonify({"error": "Invalid or expired token"}), 401
+
+    # Access token is valid
+    return jsonify({"message": "Access granted", "claims": claims})
+
+def validate_access_token(token):
+    try:
+        ARMMS_SECRET = os.getenv("ARMMS_SECRET")
+        # Decode and validate the JWT
+        print(token)
+        claims = jwt.decode(token, ARMMS_SECRET)
+        claims.validate()  # Validate standard claims (exp, iat, etc.)
+        return claims
+    except Exception as e:
+        print(f"Token validation failed: {e}")
+        return None
+
 def get_dropbox_client():
     """Retrieve Dropbox client for a specific user"""
+    if oidc.user_loggedin:
+        user_id = oidc.user_getfield('sub')
+    else:
+        # Check if an internal authorization header is provided
+        auth_header = request.headers.get("Authorization")
+
+        if not auth_header or not auth_header.startswith("Bearer "):
+            raise ValueError("Neither logged in nor authorized")
+
+        # Extract the token
+        token = auth_header.split(" ")[1]
+        
+        # Validate the token
+        claims = validate_access_token(token)
+        if not claims or "id" not in claims:
+            raise ValueError("User not provided during authentication")
+        user_id = claims["id"]
+
+    print("user id:", user_id)
+
     db_session = Session()
     token_record = (
-        db_session.query(DropboxToken).filter_by(user_id=oidc.user_getfield('sub')).first()
+        db_session.query(DropboxToken).filter_by(user_id=user_id).first()
     )  
 
     if not token_record:
@@ -138,21 +189,14 @@ def get_dropbox_client():
     return dbx
 
 @app.route("/dropbox_linked")
-@oidc.require_login
 def dropbox_linked():
     """Checks if the logged in user has a dropbox account linked or not"""
-    db_session = Session()
-    existing_token = (
-        db_session.query(DropboxToken)
-        .filter_by(user_id=oidc.user_getfield('sub'))
-        .first()
-    )
-
-    if existing_token:  
-        return "User dropbox account linked"
-    else:
-       return "User dropbox account not found" 
-
+    try:
+        print("helloo")
+        dbx = get_dropbox_client()
+        return jsonify({"message": "Dropbox linked"})
+    except Exception as e:
+        return f"You are not logged in with Dropbox: {str(e)}", 500
 
 @app.route("/list_files/")
 def list_dropbox_files():
