@@ -1,6 +1,7 @@
 import os
 from flask import Flask, redirect, request, session, send_file, url_for, jsonify
 from flask_oidc import OpenIDConnect
+from flask_cors import CORS
 from dotenv import load_dotenv
 import dropbox
 from dropbox import DropboxOAuth2Flow
@@ -13,6 +14,7 @@ from authlib.jose import jwt, jwk
 
 # Flask and Database Setup
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 app.secret_key = os.urandom(24)
 app.config.update({
     'OIDC_CLIENT_SECRETS': 'keycloak_config.json',
