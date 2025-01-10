@@ -41,7 +41,7 @@ Base.metadata.create_all(engine)
 load_dotenv()
 DROPBOX_APP_KEY = os.getenv("DROPBOX_APP_KEY")
 DROPBOX_APP_SECRET = os.getenv("DROPBOX_APP_SECRET")
-REDIRECT_URI = "https://armms-storage.aorief.com/dropbox_callback"
+REDIRECT_URI = os.getenv("DROPBOX_REDIRECT_URI")
 
 @app.route('/')
 def home():
