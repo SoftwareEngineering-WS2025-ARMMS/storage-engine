@@ -216,7 +216,6 @@ def list_dropbox_files():
                     add_list_files(entry_path, files)
                 elif isinstance(entry, dropbox.files.FileMetadata):
                     files.append({"path": entry_path.lstrip("/"), "date modified": entry.server_modified})
-                    print(type(entry.server_modified))
         except Exception as e:
             print(f"Error processing folder {folder_path}: {e}")
 
@@ -241,7 +240,8 @@ def upload_file(file_path=""):
 
     dbx = get_dropbox_client()
     try:
-        dbx.files_upload(file.read(), f"/{file_path}/{filename}")
+        file_path = "/" + file_path + "/" if file_path else "" + filename
+        dbx.files_upload(file.read(), file_path)
         return "File uploaded successfully"
     except Exception as e:
         print(f"Error uploading file: {e}")
