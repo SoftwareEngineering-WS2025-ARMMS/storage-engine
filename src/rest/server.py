@@ -202,12 +202,29 @@ def dropbox_linked():
 def list_dropbox_files():
     """List files for a given user"""
     dbx = get_dropbox_client()
+
+    def add_list_files(folder_path, files):
+        try:
+            entries = dbx.files_list_folder(folder_path).entries
+
+            for entry in entries:
+                entry_path = f"{folder_path}/{entry.name}"
+
+                if isinstance(entry, dropbox.files.FolderMetadata):
+                    add_list_files(entry_path, files)
+                elif isinstance(entry, dropbox.files.FileMetadata):
+                    files.append({"path": entry_path.lstrip("/"), "date modified": entry.server_modified})
+                    print(type(entry.server_modified))
+        except Exception as e:
+            print(f"Error processing folder {folder_path}: {e}")
+
     try:
-        files = dbx.files_list_folder("").entries #TODO: This only lists the root folder
-        return [file.name for file in files]
+        files = []
+        add_list_files("", files)
+        return jsonify(files)
     except Exception as e:
         print(f"Error listing files: {e}")
-        return []
+        return "Error listing files", 500 
 
 
 @app.route("/upload_file/", methods=["POST"])
@@ -270,7 +287,55 @@ def download_all_files():
     try:
         zip_buffer = BytesIO()
 
-        #TODO ZIP_DEFLATED might eventually cause problems
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            add_files_to_zip("", zip_file)
+
+        zip_buffer.seek(0)
+
+        return send_file(
+            zip_buffer,
+            as_attachment=True,
+            download_name="all_files.zip",
+            mimetype="application/zip",
+        )
+    except Exception as e:
+        print(f"Error downloading files: {e}")
+        return "Error downloading files", 500
+
+from datetime import datetime
+from werkzeug.routing import BaseConverter, ValidationError
+
+@app.route("/download_all_after/<after_date>")
+def download_all_files_after(after_date):
+    """Download all files from Dropbox that were modified after a given date as a single ZIP archive, including subdirectories"""
+    dbx = get_dropbox_client()
+
+    try:
+        after_date = datetime.strptime(after_date, "%d-%m-%Y")
+    except ValueError:
+        return "Invalid date or date format. Please use DD-MM-YYYY", 400
+
+    def add_files_to_zip(folder_path, zip_file):
+        try:
+            entries = dbx.files_list_folder(folder_path).entries
+
+            for entry in entries:
+                entry_path = f"{folder_path}/{entry.name}"
+
+                if isinstance(entry, dropbox.files.FolderMetadata):
+                    add_files_to_zip(entry_path, zip_file)
+                elif isinstance(entry, dropbox.files.FileMetadata):
+                    if entry.server_modified < after_date:
+                        continue
+                    _, res = dbx.files_download(entry.path_lower)
+                    zip_file.writestr(entry_path.lstrip("/"), res.content)
+                    res.close()
+        except Exception as e:
+            print(f"Error processing folder {folder_path}: {e}")
+
+    try:
+        zip_buffer = BytesIO()
+
         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
             add_files_to_zip("", zip_file)
 
