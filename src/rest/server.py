@@ -240,7 +240,7 @@ def upload_file(file_path=""):
 
     dbx = get_dropbox_client()
     try:
-        file_path = "/" + file_path + "/" if file_path else "" + filename
+        file_path = "/" + file_path + ("/" if file_path else "") + filename
         dbx.files_upload(file.read(), file_path)
         return "File uploaded successfully"
     except Exception as e:
