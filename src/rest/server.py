@@ -117,7 +117,7 @@ def dropbox_callback():
         db_session.commit()
         db_session.close()
 
-        return "Authentication successful for user: " + oauth_result.account_id
+        return redirect("https://armms-dashboard.aorief.com/", code=302)
 
     except Exception as e:
         return f"Authentication failed: {str(e)}", 500
@@ -200,7 +200,7 @@ def dropbox_linked():
     except Exception as e:
         return f"You are not logged in with Dropbox: {str(e)}", 500
 
-@app.route("/list_files/")
+@app.route("/list_files")
 def list_dropbox_files():
     """List files for a given user"""
     dbx = get_dropbox_client()
@@ -265,7 +265,7 @@ def download_file(file_path):
         return "Error downloading file", 500
 
 
-@app.route("/download_all/")
+@app.route("/download_all")
 def download_all_files():
     """Download all files from Dropbox as a single ZIP archive, including subdirectories"""
     dbx = get_dropbox_client()
