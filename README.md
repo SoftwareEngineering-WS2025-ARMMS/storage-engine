@@ -23,11 +23,13 @@ DROPBOX_APP_SECRET=
 ARMMS_SECRET=
 DROPBOX_REDIRECT_URI=
 CALLBACK_REDIRECT_URI=
+KEYCLOAK_JWKS_URL=
 ```
 - DROPBOX_APP_KEY and DROPBOX_APP_SECRET are used to link the Dropbox app you just created to the server. They can be found in the settings section under App key and App secret, respectively.
 - ARMMS_SECRET is an organisation secret used for signing JWT tokens.
 - DROPBOX_REDIRECT_URI is used by dropbox after logging in, this should be the /dropbox_callback endpoint and should be registered under the dropbox application settings (see step 3 of the previous section)
 - CALLBACK_REDIRECT_URI is used to redirect the user after successful log in.
+- KEYCLOAK_JWKS_URL is used to provide keycloak certificate for validated JWT.
 
 ## Keycloak configuration
 To run the server, a keycloak configuration is needed. It is stored in a keycloak_config.json file in the root directory.
