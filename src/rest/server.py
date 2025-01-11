@@ -189,9 +189,9 @@ def get_dropbox_client():
         
         # Validate the token
         claims = validate_access_token(token)
-        if not claims or "id" not in claims:
+        if not claims or "sub" not in claims:
             raise ValueError("User not provided during authentication")
-        user_id = claims["id"]
+        user_id = claims["sub"]
 
     print("user id:", user_id)
 
