@@ -44,6 +44,7 @@ load_dotenv()
 DROPBOX_APP_KEY = os.getenv("DROPBOX_APP_KEY")
 DROPBOX_APP_SECRET = os.getenv("DROPBOX_APP_SECRET")
 REDIRECT_URI = os.getenv("DROPBOX_REDIRECT_URI")
+CALLBACK_URI = os.getenv("CALLBACK_REDIRECT_URI")
 
 @app.route('/')
 def home():
@@ -117,7 +118,7 @@ def dropbox_callback():
         db_session.commit()
         db_session.close()
 
-        return redirect("https://armms-dashboard.aorief.com/", code=302)
+        return redirect(CALLBACK_URI)
 
     except Exception as e:
         return f"Authentication failed: {str(e)}", 500
@@ -313,9 +314,12 @@ def download_all_files_after(after_date):
     dbx = get_dropbox_client()
 
     try:
-        after_date = datetime.strptime(after_date, "%d-%m-%Y")
+        after_date = datetime.strptime(after_date, "%d-%m-%Y-%H:%M:%S")
     except ValueError:
-        return "Invalid date or date format. Please use DD-MM-YYYY", 400
+        try:
+            after_date = datetime.strptime(after_date, "%d-%m-%Y")
+        except ValueError:
+            return "Invalid date format. Please use dd-mm-yyyy or dd-mm-yyyy-hh:mm:ss", 400
 
     def add_files_to_zip(folder_path, zip_file):
         try:
