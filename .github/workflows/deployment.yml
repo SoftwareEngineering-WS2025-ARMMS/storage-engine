@@ -25,13 +25,13 @@ jobs:
     - name: Kill Container if exists
       run: |
         if [ "$(docker ps -q -f name=armms-storage)" ]; then
-          docker kill armms-pipeline
+          docker kill armms-storage
         fi
     
     - name: Remove Container if exists
       run: |
         if [ "$(docker ps -aq -f name=armms-storage)" ]; then
-          docker rm armms-pipeline
+          docker rm armms-storage
         fi
     
     - name: Add env variables
