@@ -150,9 +150,9 @@ def validate_access_token(token):
     try:
         ARMMS_SECRET = os.getenv("ARMMS_SECRET")
         # Decode and validate the JWT
-        print(token)
         claims = jwt.decode(token, ARMMS_SECRET)
         claims.validate()  # Validate standard claims (exp, iat, etc.)
+        return claims
     except Exception as e:
         print(f"Token not signed with ARMMS_SECRET: {e}")
 
@@ -166,12 +166,12 @@ def validate_access_token(token):
             token,
             jwks
         )
-        print("decoded")
         claims.validate_aud()
+        return claims
     except Exception as e:
         print(f"Token not signed by Keycloak: {e}")
     
-    return claims
+    return None
 
 def get_dropbox_client():
     """Retrieve Dropbox client for a specific user"""
