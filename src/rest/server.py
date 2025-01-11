@@ -11,6 +11,7 @@ from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from authlib.jose import jwt, jwk
+import requests
 
 # Flask and Database Setup
 app = Flask(__name__)
@@ -142,16 +143,35 @@ def validate_token():
     return jsonify({"message": "Access granted", "claims": claims})
 
 def validate_access_token(token):
+
+    claims = None
+
+    # With ARMMS SECRET
     try:
         ARMMS_SECRET = os.getenv("ARMMS_SECRET")
         # Decode and validate the JWT
         print(token)
         claims = jwt.decode(token, ARMMS_SECRET)
         claims.validate()  # Validate standard claims (exp, iat, etc.)
-        return claims
     except Exception as e:
-        print(f"Token validation failed: {e}")
-        return None
+        print(f"Token not signed with ARMMS_SECRET: {e}")
+
+    # With Keycloak
+    try:
+        jwks_url = os.getenv("KEYCLOAK_JWKS_URL")
+        response = requests.get(jwks_url)
+        response.raise_for_status()
+        jwks = response.json()
+        claims = jwt.decode(
+            token,
+            jwks
+        )
+        print("decoded")
+        claims.validate_aud()
+    except Exception as e:
+        print(f"Token not signed by Keycloak: {e}")
+    
+    return claims
 
 def get_dropbox_client():
     """Retrieve Dropbox client for a specific user"""

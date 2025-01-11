@@ -6,3 +6,4 @@ flask_cors
 python-dotenv==1.0.1
 SQLAlchemy==2.0.36
 Werkzeug==2.2.2
+requests
