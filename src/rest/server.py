@@ -157,7 +157,7 @@ def validate_access_token(token):
 
     # With Keycloak
     try:
-        jwks_url = "https://keycloak-armms.rayenmanai.site/realms/ARMMS-Platform/protocol/openid-connect/certs"
+        jwks_url = os.getenv("KEYCLOAK_JWKS_URL")
         response = requests.get(jwks_url)
         response.raise_for_status()
         jwks = response.json()
