@@ -44,9 +44,9 @@ jobs:
         echo "ARMMS_SECRET=${{ secrets.ARMMS_SECRET }}" >> ./.env
         echo "DROPBOX_APP_KEY=${{ secrets.DROPBOX_APP_KEY }}" >> ./.env
         echo "DROPBOX_APP_SECRET=${{ secrets.DROPBOX_APP_SECRET }}" >> ./.env
-        echo "DROPBOX_REDIRECT_URI=${{ variables.DROPBOX_REDIRECT_URI }}" >> ./.env
-        echo "CALLBACK_REDIRECT_URI=${{ variables.CALLBACK_REDIRECT_URI }}" >> ./.env
-        echo "KEYCLOAK_JWKS_URL=${{ variables.KEYCLOAK_JWKS_URL }}" >> ./.env
+        echo "DROPBOX_REDIRECT_URI=${{ vars.DROPBOX_REDIRECT_URI }}" >> ./.env
+        echo "CALLBACK_REDIRECT_URI=${{ vars.CALLBACK_REDIRECT_URI }}" >> ./.env
+        echo "KEYCLOAK_JWKS_URL=${{ vars.KEYCLOAK_JWKS_URL }}" >> ./.env
         echo '${{ secrets.KEYCLOAK_CONFIG }}' > keycloak_config.json
 
     - name: Build and Deploy Container
