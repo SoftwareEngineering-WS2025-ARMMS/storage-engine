@@ -51,12 +51,12 @@ CALLBACK_URI = os.getenv("CALLBACK_REDIRECT_URI")
 def home():
     print(request.cookies)
     if oidc.user_loggedin:
-        db_session = Session()
-        existing_token = (
-            db_session.query(DropboxToken)
-            .filter_by(user_id=oidc.user_getfield('sub'))
-            .first()
-        )
+        with Session() as db_session:
+            existing_token = (
+                db_session.query(DropboxToken)
+                .filter_by(user_id=oidc.user_getfield('sub'))
+                .first()
+            )
         return f"Welcome, {oidc.user_getfield('email')}!\nLogged into Dropbox: {existing_token!=None}"
     else:
         return 'Welcome! Please <a href="/login">log in</a>.'
@@ -195,10 +195,10 @@ def get_dropbox_client():
 
     print("user id:", user_id)
 
-    db_session = Session()
-    token_record = (
-        db_session.query(DropboxToken).filter_by(user_id=user_id).first()
-    )  
+    with Session() as db_session:
+        token_record = (
+            db_session.query(DropboxToken).filter_by(user_id=user_id).first()
+        )  
 
     if not token_record:
         raise ValueError("No Dropbox token found for this user")
